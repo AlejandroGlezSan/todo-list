@@ -70,5 +70,8 @@ Abre tu navegador en [http://127.0.0.1:5000](http://127.0.0.1:5000)
 - UI y animaciones inspiradas en CodePen y Three.js.
 - Desarrollado por AlejandroGlezSan y colaboradores.
 
+## Confirmación de email
+- Al registrarte, revisa la terminal donde ejecutaste Flask: ahí aparecerá el código de confirmación necesario para activar tu cuenta.
+
 ---
 ¡Contribuciones y sugerencias bienvenidas!
