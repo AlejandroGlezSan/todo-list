@@ -8,6 +8,7 @@ ENV/
 *.db
 instance/
 *.sqlite3
+tasks.db
 
 # Archivos de configuración y secretos
 *.pyc
