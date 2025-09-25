@@ -3,16 +3,126 @@
 <head>
     <title>Mi Lista de Tareas</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; display: flex; justify-content: center; align-items: center; flex-direction: column; margin-top: 50px; }
+        /* Animación flotante para popups */
+        @keyframes popup-float {
+            0% { transform: translateY(-30px); opacity: 0; }
+            15% { transform: translateY(0); opacity: 1; }
+            85% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-30px); opacity: 0; }
+        }
+        /* Verificación de carga de CSS */
+        body:after {
+            content: '';
+            display: none;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            background: #0e2a47;
+        }
+
+        /* Ondas animadas tipo agua de mar */
+        .ocean {
+            position: fixed;
+            left: 0; right: 0; top: 0; bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .wave {
+            position: absolute;
+            left: 0;
+            width: 200%;
+            height: 120px;
+            background: rgba(0,180,255,0.25);
+            border-radius: 100% 50%;
+            animation: waveMove 8s linear infinite;
+            bottom: 0;
+        }
+        .wave.wave2 {
+            background: rgba(0,180,255,0.18);
+            height: 140px;
+            animation-duration: 13s;
+            animation-direction: reverse;
+            bottom: 20px;
+        }
+        .wave.wave3 {
+            background: rgba(0,180,255,0.12);
+            height: 180px;
+            animation-duration: 21s;
+            bottom: 40px;
+        }
+        @keyframes waveMove {
+            0% { transform: translateX(0) scaleY(1); }
+            50% { transform: translateX(-25%) scaleY(1.1); }
+            100% { transform: translateX(-50%) scaleY(1); }
+        }
         .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); width: 90%; max-width: 500px; }
+        .container {
+            background: rgba(255, 255, 255, 0.78);
+            padding: 32px 28px 28px 28px;
+            border-radius: 22px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.22), 0 2px 16px 0 rgba(0,0,0,0.13);
+            width: 92%;
+            max-width: 540px;
+            position: relative;
+            z-index: 2;
+            border: 2.5px solid rgba(255,255,255,0.7);
+            backdrop-filter: blur(14px) saturate(140%);
+            -webkit-backdrop-filter: blur(14px) saturate(140%);
+            transition: background 0.5s, box-shadow 0.5s;
+            overflow: hidden;
+        }
+        .container::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0.18);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .container > * {
+            position: relative;
+            z-index: 1;
+        }
+        
         h1 { text-align: center; color: #333; }
         .user-info { text-align: right; margin-bottom: 20px; }
         .user-info a { color: #007bff; text-decoration: none; }
         .user-info a:hover { text-decoration: underline; }
-        .flash-message { padding: 10px; margin-bottom: 15px; border-radius: 4px; }
-        .flash-success { background-color: #d4edda; color: #155724; }
-        .flash-danger { background-color: #f8d7da; color: #721c24; }
+        .flash-message {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .flash-success {
+            background-color: #4caf50;
+            color: #111;
+        }
+        .flash-danger {
+            background-color: #ff4d4d;
+            color: #111;
+        }
+        /* Popup flash (flotante) */
+        #popup-flash {
+            display: none;
+        }
         .input-group { display: flex; margin-bottom: 20px; }
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.25);
+            border-radius: 8px;
+            padding: 8px 0;
+        }
         input[type="text"] { flex-grow: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px; }
         button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
         button:hover { background-color: #0056b3; }
@@ -27,15 +137,69 @@
         .filter-buttons { display: flex; justify-content: center; margin-bottom: 20px; gap: 10px; }
         .filter-buttons a {
             padding: 8px 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            border: 1.5px solid #b3cfff;
+            border-radius: 7px;
             text-decoration: none;
-            color: #333;
+            color: #234;
             cursor: pointer;
+            background: rgba(255,255,255,0.18);
+            box-shadow: 0 1px 4px 0 rgba(30,80,200,0.04);
+            transition: background 0.25s, color 0.25s, box-shadow 0.25s, border 0.25s, transform 0.18s;
+            position: relative;
         }
-        .filter-buttons a:hover { background-color: #ddd; }
+        .filter-buttons a:hover {
+            background: #e3f0ff;
+            color: #0056b3;
+            border-color: #3399ff;
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 4px 16px 0 rgba(30,80,200,0.10);
+        }
+        .filter-buttons a.active, .filter-buttons a.selected {
+            background: linear-gradient(90deg, #3399ff 60%, #6ec6ff 100%);
+            color: #fff;
+            border-color: #3399ff;
+            box-shadow: 0 6px 24px 0 rgba(51,153,255,0.18);
+            transform: scale(1.08);
+            animation: filter-pop 0.38s cubic-bezier(.4,1.6,.4,1);
+        }
+        @keyframes filter-pop {
+            0% { transform: scale(0.92); box-shadow: 0 0 0 rgba(51,153,255,0.00); }
+            60% { transform: scale(1.12); box-shadow: 0 8px 32px 0 rgba(51,153,255,0.22); }
+            100% { transform: scale(1.08); box-shadow: 0 6px 24px 0 rgba(51,153,255,0.18); }
+        }
         .add-task-container { display: flex; gap: 10px; }
+        .add-task-container {
+          display: flex;
+          gap: 10px;
+          background: rgba(255,255,255,0.25);
+          border-radius: 8px;
+          padding: 10px 0;
+          align-items: flex-end;
+          width: 100%;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0;
+        }
+        button:hover { background-color: #0056b3; }
         .add-task-container select { padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .add-task-container input[type="text"],
+        .add-task-container input[type="date"],
+        .add-task-container input[type="time"],
+        .add-task-container select {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+        .add-task-container button {
+            flex: 0 0 auto;
+            max-width: 120px;
+            margin: 0;
+        }
 
         /* Estilos para las prioridades */
         .priority {
@@ -52,18 +216,39 @@
     </style>
 </head>
 <body>
+    <!-- Fondo animado poligonal SVG generado por background-poly.js -->
+    <div id="popup-flash" style="display:none;"></div>
     <div class="container">
         <div class="user-info">
             {% if current_user.is_authenticated %}
-                Hola, {{ current_user.username }}! | <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+                ¡ Hola {{ current_user.email }} ! | <a href="{{ url_for('logout') }}">Cerrar sesión</a>
             {% endif %}
-        </div>
+    </div>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            {% for category, message in messages %}
-            <div class="flash-message flash-{{ category }}">{{ message }}</div>
-            {% endfor %}
+                {% set cat, msg = messages[0] %}
+                <script>
+                    window.addEventListener('DOMContentLoaded', function() {
+                        var popup = document.getElementById('popup-flash');
+                        var cat = '{{ cat }}';
+                        var msg = `{{ msg|safe }}`;
+                        var color = '#fff', text = '#111', border = '#ccc';
+                        if (cat === 'danger') { color = '#ff4d4d'; text = '#111'; border = '#b71c1c'; }
+                        else if (cat === 'success') { color = '#4caf50'; text = '#111'; border = '#1b5e20'; }
+                        else { color = '#fff'; text = '#111'; border = '#888'; }
+                        var html = `<div style="padding:18px 28px;font-size:1.1rem;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,0.13);background:${color};color:${text};border:2px solid ${border};font-weight:500;max-width:400px;margin:auto;animation:popup-float 5s cubic-bezier(.4,1.6,.4,1);">${msg}</div>`;
+                        popup.innerHTML = html;
+                        popup.style.display = 'block';
+                        popup.style.position = 'fixed';
+                        popup.style.top = '40px';
+                        popup.style.left = '0';
+                        popup.style.right = '0';
+                        popup.style.zIndex = '9999';
+                        setTimeout(function(){ popup.style.display = 'none'; }, 5000);
+                    });
+                </script>
+                {# Eliminado: notificaciones redundantes, ahora solo popup #}
         {% endif %}
         {% endwith %}
 
@@ -94,6 +279,7 @@
                 <option value="Alta">Alta</option>
             </select>
             <input type="date" name="due_date" id="due-date-input" placeholder="Vencimiento">
+            <input type="time" name="due_time" id="due-time-input" placeholder="Hora">
             <button type="submit">Agregar</button>
         </form>
         
@@ -101,16 +287,27 @@
             </ul>
     </div>
 
+    <script src="{{ url_for('static', filename='background-poly.js') }}"></script>
     <script>
         // Función para crear un nuevo elemento de tarea
         function createTaskElement(task) {
             const li = document.createElement('li');
             li.setAttribute('data-task-id', task.id);
+            let due = '';
+            if (task.due_date) {
+                const d = new Date(task.due_date);
+                if (!isNaN(d)) {
+                    const dateStr = d.toLocaleDateString();
+                    const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    due = `<span style=\"margin-left:8px;font-size:0.95em;color:#555;\">🕒 ${dateStr} ${timeStr}</span>`;
+                }
+            }
             li.innerHTML = `
                 <div class="task-item">
                     <input type="checkbox" class="task-checkbox" ${task.done ? 'checked' : ''}>
                     <span class="task-content-span ${task.done ? 'done' : ''}" style="margin-left: 10px;">${task.content}</span>
                     <span class="priority priority-${task.priority}">${task.priority}</span>
+                    ${due}
                 </div>
                 <div class="task-actions">
                     <a class="delete-link" data-task-id="${task.id}">[Eliminar]</a>
@@ -148,7 +345,7 @@
             }
 
             try {
-                const response = await fetch(url);
+                const response = await fetch(url, { credentials: 'same-origin' });
                 const tasks = await response.json();
                 taskList.innerHTML = '';
                 tasks.forEach(task => {
@@ -165,19 +362,22 @@
             fetchAndRenderTasks();
         });
 
-        // Event listeners para los filtros de estado
+        // Filtros de estado
         document.querySelectorAll('.filter-link').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
+                document.querySelectorAll('.filter-link').forEach(l => l.classList.remove('active'));
+                e.target.classList.add('active');
                 currentFilter = e.target.dataset.filter;
                 fetchAndRenderTasks();
             });
         });
-
-        // Event listeners para los filtros de prioridad
+        // Filtros de prioridad
         document.querySelectorAll('.priority-link').forEach(link => {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
+                document.querySelectorAll('.priority-link').forEach(l => l.classList.remove('active'));
+                e.target.classList.add('active');
                 currentPriority = e.target.dataset.priority;
                 fetchAndRenderTasks();
             });
@@ -194,28 +394,54 @@
             const taskContent = newTaskInput.value;
             const taskPriority = taskPrioritySelect.value;
             const dueDateInput = document.getElementById('due-date-input');
+            const dueTimeInput = document.getElementById('due-time-input');
             const dueDate = dueDateInput.value;
+            const dueTime = dueTimeInput.value;
 
             if (!taskContent) return;
 
             const payload = { task: taskContent, priority: taskPriority };
-            if (dueDate) payload.due_date = dueDate;
+            if (dueDate) {
+                if (dueTime) {
+                    payload.due_date = dueDate + 'T' + dueTime;
+                } else {
+                    payload.due_date = dueDate;
+                }
+            }
 
             try {
                 const response = await fetch('/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(payload),
+                    credentials: 'same-origin'
                 });
-
-                const data = await response.json();
-                if (data.success) {
-                    const newTaskElement = createTaskElement(data);
-                    taskList.appendChild(newTaskElement);
-                    newTaskInput.value = '';
-                    dueDateInput.value = '';
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await response.json();
+                    if (data.success) {
+                        const newTaskElement = createTaskElement(data);
+                        taskList.appendChild(newTaskElement);
+                        newTaskInput.value = '';
+                        dueDateInput.value = '';
+                        dueTimeInput.value = '';
+                        // Mostrar popup verde de éxito
+                        var popup = document.getElementById('popup-flash');
+                        var msg = '¡Tarea añadida con éxito!';
+                        var html = `<div style="padding:18px 28px;font-size:1.1rem;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,0.13);background:#4caf50;color:#111;border:2px solid #1b5e20;font-weight:500;max-width:400px;margin:auto;animation:popup-float 3s cubic-bezier(.4,1.6,.4,1);">${msg}</div>`;
+                        popup.innerHTML = html;
+                        popup.style.display = 'block';
+                        popup.style.position = 'fixed';
+                        popup.style.top = '40px';
+                        popup.style.left = '0';
+                        popup.style.right = '0';
+                        popup.style.zIndex = '9999';
+                        setTimeout(function(){ popup.style.display = 'none'; }, 3000);
+                    } else {
+                        console.error('Error al añadir tarea:', data.error);
+                    }
                 } else {
-                    console.error('Error al añadir tarea:', data.error);
+                    window.location.href = '/login';
                 }
             } catch (error) {
                 console.error('Error de red:', error);
@@ -229,16 +455,20 @@
                 const taskContentSpan = event.target.nextElementSibling;
                 
                 try {
-                    const response = await fetch(`/complete/${taskId}`);
-                    if (!response.ok) {
-                        throw new Error('No se pudo completar la tarea');
-                    }
-                    const data = await response.json();
-                    
-                    if (data.done) {
-                        taskContentSpan.classList.add('done');
+                    const response = await fetch(`/complete/${taskId}`, { credentials: 'same-origin' });
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        if (!response.ok) {
+                            throw new Error('No se pudo completar la tarea');
+                        }
+                        const data = await response.json();
+                        if (data.done) {
+                            taskContentSpan.classList.add('done');
+                        } else {
+                            taskContentSpan.classList.remove('done');
+                        }
                     } else {
-                        taskContentSpan.classList.remove('done');
+                        window.location.href = '/login';
                     }
                 } catch (error) {
                     console.error('Error:', error);
@@ -257,13 +487,31 @@
 
                 try {
                     const response = await fetch(`/delete/${taskId}`, {
-                        method: 'POST'
+                        method: 'POST',
+                        credentials: 'same-origin'
                     });
-                    const data = await response.json();
-                    if (data.success) {
-                        li.remove();
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const data = await response.json();
+                        if (data.success) {
+                            li.remove();
+                            // Mostrar popup rojo de éxito
+                            var popup = document.getElementById('popup-flash');
+                            var msg = 'Tarea eliminada correctamente.';
+                            var html = `<div style="padding:18px 28px;font-size:1.1rem;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,0.13);background:#ff4d4d;color:#111;border:2px solid #b71c1c;font-weight:500;max-width:400px;margin:auto;animation:popup-float 3s cubic-bezier(.4,1.6,.4,1);">${msg}</div>`;
+                            popup.innerHTML = html;
+                            popup.style.display = 'block';
+                            popup.style.position = 'fixed';
+                            popup.style.top = '40px';
+                            popup.style.left = '0';
+                            popup.style.right = '0';
+                            popup.style.zIndex = '9999';
+                            setTimeout(function(){ popup.style.display = 'none'; }, 3000);
+                        } else {
+                            console.error('Error al eliminar tarea:', data.error);
+                        }
                     } else {
-                        console.error('Error al eliminar tarea:', data.error);
+                        window.location.href = '/login';
                     }
                 } catch (error) {
                     console.error('Error de red:', error);
@@ -293,14 +541,19 @@
                             const response = await fetch(`/edit/${taskId}`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ content: newContent })
+                                body: JSON.stringify({ content: newContent }),
+                                credentials: 'same-origin'
                             });
-
-                            if (!response.ok) {
-                                throw new Error('No se pudo editar la tarea');
+                            const contentType = response.headers.get('content-type');
+                            if (contentType && contentType.includes('application/json')) {
+                                if (!response.ok) {
+                                    throw new Error('No se pudo editar la tarea');
+                                }
+                                const data = await response.json();
+                                span.textContent = data.content;
+                            } else {
+                                window.location.href = '/login';
                             }
-                            const data = await response.json();
-                            span.textContent = data.content;
                         } catch (error) {
                             console.error('Error:', error);
                             span.textContent = originalText;

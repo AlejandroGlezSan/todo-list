@@ -3,35 +3,154 @@
 <head>
     <title>Iniciar Sesión</title>
     <style>
-        body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f4; }
-        .auth-container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); width: 300px; text-align: center; }
-        h1 { margin-bottom: 20px; }
-        form { display: flex; flex-direction: column; }
-        input[type="text"], input[type="password"] { padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; }
-        button { padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        a { color: #007bff; text-decoration: none; }
-        .flash-message { padding: 10px; margin-bottom: 10px; border-radius: 4px; }
-        .flash-danger { background-color: #f8d7da; color: #721c24; }
+        @keyframes popup-float {
+            0% { transform: translateY(-30px); opacity: 0; }
+            15% { transform: translateY(0); opacity: 1; }
+            85% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-30px); opacity: 0; }
+        }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #e0e7ff 0%, #f4f4f4 100%);
+        }
+        .auth-container {
+            background-color: #fff;
+            padding: 32px 28px 24px 28px;
+            border-radius: 14px;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.13);
+            width: 350px;
+            text-align: center;
+        }
+        h1 {
+            margin-bottom: 28px;
+            color: #22223b;
+            font-size: 2rem;
+            letter-spacing: 1px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+        }
+        label {
+            font-size: 1rem;
+            color: #4a4e69;
+            margin-left: 2px;
+        }
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 11px 12px;
+            border: 1.5px solid #c9c9c9;
+            border-radius: 6px;
+            font-size: 1rem;
+            background: #f8f9fa;
+            transition: border 0.2s;
+        }
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            border: 1.5px solid #7c3aed;
+            outline: none;
+            background: #fff;
+        }
+        button {
+            padding: 12px;
+            background: linear-gradient(90deg, #7c3aed 0%, #007bff 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.08);
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: linear-gradient(90deg, #5f1ee6 0%, #0056b3 100%);
+        }
+        a {
+            color: #7c3aed;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .switch-link {
+            margin-top: 18px;
+            font-size: 0.98rem;
+        }
+        .flash-message {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .flash-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
     </style>
 </head>
 <body>
+    <div id="popup-flash" style="display:none;"></div>
     <div class="auth-container">
         <h1>Iniciar Sesión</h1>
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            {% for category, message in messages %}
-            {% if category == 'danger' %}
-            <div class="flash-message flash-{{ category }}">{{ message }}</div>
-            {% endif %}
-            {% endfor %}
+            {% set cat, msg = messages[0] %}
+            <script>
+                window.addEventListener('DOMContentLoaded', function() {
+                    var popup = document.getElementById('popup-flash');
+                    var cat = '{{ cat }}';
+                    var msg = `{{ msg|safe }}`;
+                    var color = '#fff', text = '#111', border = '#ccc';
+                    if (cat === 'danger') { color = '#ff4d4d'; text = '#111'; border = '#b71c1c'; }
+                    else if (cat === 'success') { color = '#4caf50'; text = '#111'; border = '#1b5e20'; }
+                    else { color = '#fff'; text = '#111'; border = '#888'; }
+                    var html = `<div style=\"padding:18px 28px;font-size:1.1rem;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,0.13);background:${color};color:${text};border:2px solid ${border};font-weight:500;max-width:400px;margin:auto;animation:popup-float 5s cubic-bezier(.4,1.6,.4,1);\">${msg}</div>`;
+                    popup.innerHTML = html;
+                    popup.style.display = 'block';
+                    popup.style.position = 'fixed';
+                    popup.style.top = '40px';
+                    popup.style.left = '0';
+                    popup.style.right = '0';
+                    popup.style.zIndex = '9999';
+                    setTimeout(function(){ popup.style.display = 'none'; }, 5000);
+                });
+            </script>
         {% endif %}
         {% endwith %}
         <form action="{{ url_for('login') }}" method="POST">
-            <input type="text" name="username" placeholder="Nombre de usuario" required>
-            <input type="password" name="password" placeholder="Contraseña" required>
+            <div class="form-group">
+                <label for="email">Correo electrónico</label>
+                <input type="email" id="email" name="username" placeholder="Correo electrónico" required autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" name="password" placeholder="Contraseña" required autocomplete="current-password">
+            </div>
             <button type="submit">Iniciar Sesión</button>
         </form>
-        <p>¿No tienes una cuenta? <a href="{{ url_for('register') }}">Regístrate aquí</a></p>
+        {% if resend_email %}
+        <form action="{{ url_for('resend_confirmation') }}" method="POST" style="margin-top: 10px;">
+            <input type="hidden" name="email" value="{{ resend_email }}">
+            <button type="submit" style="background: #ffc107; color: #222; font-weight: 500;">Reenviar email de confirmación</button>
+        </form>
+        {% endif %}
+        <div class="switch-link">¿No tienes una cuenta? <a href="{{ url_for('register') }}">Regístrate aquí</a></div>
     </div>
 </body>
 </html>
