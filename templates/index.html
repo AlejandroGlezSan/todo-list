@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mi Lista de Tareas</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; display: flex; justify-content: center; align-items: center; flex-direction: column; margin-top: 50px; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); width: 90%; max-width: 500px; }
+        h1 { text-align: center; color: #333; }
+        .user-info { text-align: right; margin-bottom: 20px; }
+        .user-info a { color: #007bff; text-decoration: none; }
+        .user-info a:hover { text-decoration: underline; }
+        .flash-message { padding: 10px; margin-bottom: 15px; border-radius: 4px; }
+        .flash-success { background-color: #d4edda; color: #155724; }
+        .flash-danger { background-color: #f8d7da; color: #721c24; }
+        .input-group { display: flex; margin-bottom: 20px; }
+        input[type="text"] { flex-grow: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-right: 10px; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        ul { list-style: none; padding: 0; }
+        li { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; }
+        li:last-child { border-bottom: none; }
+        .task-item { display: flex; align-items: center; flex-grow: 1; }
+        .task-content-span { cursor: pointer; }
+        .done { text-decoration: line-through; color: gray; }
+        .task-actions a { color: #dc3545; text-decoration: none; margin-left: 10px; cursor: pointer; }
+        .task-actions a:hover { text-decoration: underline; }
+        .filter-buttons { display: flex; justify-content: center; margin-bottom: 20px; gap: 10px; }
+        .filter-buttons a {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #333;
+            cursor: pointer;
+        }
+        .filter-buttons a:hover { background-color: #ddd; }
+        .add-task-container { display: flex; gap: 10px; }
+        .add-task-container select { padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+
+        /* Estilos para las prioridades */
+        .priority {
+            font-size: 0.8em;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 10px;
+            color: white;
+        }
+        .priority-Alta { background-color: #dc3545; }
+        .priority-Media { background-color: #ffc107; }
+        .priority-Baja { background-color: #28a745; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="user-info">
+            {% if current_user.is_authenticated %}
+                Hola, {{ current_user.username }}! | <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+            {% endif %}
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="flash-message flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <h1>Mi Lista de Tareas</h1>
+        
+        <div class="input-group">
+            <input type="text" name="search" id="search-input" placeholder="Buscar tareas...">
+        </div>
+
+        <div class="filter-buttons">
+            <a href="#" class="filter-link active" data-filter="all">Todas</a>
+            <a href="#" class="filter-link" data-filter="pending">Pendientes</a>
+            <a href="#" class="filter-link" data-filter="completed">Completadas</a>
+        </div>
+        
+        <div class="filter-buttons">
+            <a href="#" class="priority-link active" data-priority="all">Todas las Prioridades</a>
+            <a href="#" class="priority-link" data-priority="Alta">Prioridad Alta</a>
+            <a href="#" class="priority-link" data-priority="Media">Prioridad Media</a>
+            <a href="#" class="priority-link" data-priority="Baja">Prioridad Baja</a>
+        </div>
+        
+        <form id="add-form" method="POST" class="add-task-container">
+            <input type="text" name="task" id="new-task-input" placeholder="Nueva tarea..." required>
+            <select name="priority" id="task-priority-select">
+                <option value="Baja">Baja</option>
+                <option value="Media">Media</option>
+                <option value="Alta">Alta</option>
+            </select>
+            <input type="date" name="due_date" id="due-date-input" placeholder="Vencimiento">
+            <button type="submit">Agregar</button>
+        </form>
+        
+        <ul id="task-list">
+            </ul>
+    </div>
+
+    <script>
+        // Función para crear un nuevo elemento de tarea
+        function createTaskElement(task) {
+            const li = document.createElement('li');
+            li.setAttribute('data-task-id', task.id);
+            li.innerHTML = `
+                <div class="task-item">
+                    <input type="checkbox" class="task-checkbox" ${task.done ? 'checked' : ''}>
+                    <span class="task-content-span ${task.done ? 'done' : ''}" style="margin-left: 10px;">${task.content}</span>
+                    <span class="priority priority-${task.priority}">${task.priority}</span>
+                </div>
+                <div class="task-actions">
+                    <a class="delete-link" data-task-id="${task.id}">[Eliminar]</a>
+                </div>
+            `;
+            return li;
+        }
+
+        const taskList = document.getElementById('task-list');
+        const addForm = document.getElementById('add-form');
+        const newTaskInput = document.getElementById('new-task-input');
+        const taskPrioritySelect = document.getElementById('task-priority-select');
+        const searchInput = document.getElementById('search-input');
+        
+        let currentFilter = 'all';
+        let currentPriority = 'all';
+
+        // Función para obtener y renderizar las tareas
+        async function fetchAndRenderTasks() {
+            let url = '/get-tasks';
+            const params = {};
+            if (currentFilter !== 'all') {
+                params.filter = currentFilter;
+            }
+            if (currentPriority !== 'all') {
+                params.priority = currentPriority;
+            }
+            if (searchInput.value) {
+                params.search = searchInput.value;
+            }
+
+            const queryParams = new URLSearchParams(params).toString();
+            if (queryParams) {
+                url += `?${queryParams}`;
+            }
+
+            try {
+                const response = await fetch(url);
+                const tasks = await response.json();
+                taskList.innerHTML = '';
+                tasks.forEach(task => {
+                    const taskElement = createTaskElement(task);
+                    taskList.appendChild(taskElement);
+                });
+            } catch (error) {
+                console.error('Error al obtener las tareas:', error);
+            }
+        }
+        
+        // Cargar las tareas iniciales al cargar la página
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchAndRenderTasks();
+        });
+
+        // Event listeners para los filtros de estado
+        document.querySelectorAll('.filter-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                currentFilter = e.target.dataset.filter;
+                fetchAndRenderTasks();
+            });
+        });
+
+        // Event listeners para los filtros de prioridad
+        document.querySelectorAll('.priority-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                currentPriority = e.target.dataset.priority;
+                fetchAndRenderTasks();
+            });
+        });
+
+        // Event listener para la búsqueda asíncrona
+        searchInput.addEventListener('keyup', () => {
+            fetchAndRenderTasks();
+        });
+
+        // Event listener para manejar la adición de tareas de forma asíncrona
+        addForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const taskContent = newTaskInput.value;
+            const taskPriority = taskPrioritySelect.value;
+            const dueDateInput = document.getElementById('due-date-input');
+            const dueDate = dueDateInput.value;
+
+            if (!taskContent) return;
+
+            const payload = { task: taskContent, priority: taskPriority };
+            if (dueDate) payload.due_date = dueDate;
+
+            try {
+                const response = await fetch('/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    const newTaskElement = createTaskElement(data);
+                    taskList.appendChild(newTaskElement);
+                    newTaskInput.value = '';
+                    dueDateInput.value = '';
+                } else {
+                    console.error('Error al añadir tarea:', data.error);
+                }
+            } catch (error) {
+                console.error('Error de red:', error);
+            }
+        });
+
+        // Event listener para manejar el marcado de tareas
+        taskList.addEventListener('change', async (event) => {
+            if (event.target.classList.contains('task-checkbox')) {
+                const taskId = event.target.closest('li').dataset.taskId;
+                const taskContentSpan = event.target.nextElementSibling;
+                
+                try {
+                    const response = await fetch(`/complete/${taskId}`);
+                    if (!response.ok) {
+                        throw new Error('No se pudo completar la tarea');
+                    }
+                    const data = await response.json();
+                    
+                    if (data.done) {
+                        taskContentSpan.classList.add('done');
+                    } else {
+                        taskContentSpan.classList.remove('done');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    event.target.checked = !event.target.checked;
+                }
+            }
+        });
+
+        // Event listener para manejar la eliminación de tareas
+        taskList.addEventListener('click', async (event) => {
+            const deleteLink = event.target.closest('.delete-link');
+            if (deleteLink) {
+                event.preventDefault();
+                const taskId = deleteLink.dataset.taskId;
+                const li = deleteLink.closest('li');
+
+                try {
+                    const response = await fetch(`/delete/${taskId}`, {
+                        method: 'POST'
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        li.remove();
+                    } else {
+                        console.error('Error al eliminar tarea:', data.error);
+                    }
+                } catch (error) {
+                    console.error('Error de red:', error);
+                }
+            }
+        });
+
+        // Event listener para manejar la edición de tareas
+        taskList.addEventListener('click', (event) => {
+            const span = event.target.closest('.task-content-span');
+            if (span) {
+                const li = span.closest('li');
+                const taskId = li.dataset.taskId;
+                const originalText = span.textContent;
+                
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = originalText;
+                input.style.marginLeft = '10px';
+                span.replaceWith(input);
+                input.focus();
+
+                const handleFinishEdit = async () => {
+                    const newContent = input.value;
+                    if (newContent !== originalText) {
+                        try {
+                            const response = await fetch(`/edit/${taskId}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ content: newContent })
+                            });
+
+                            if (!response.ok) {
+                                throw new Error('No se pudo editar la tarea');
+                            }
+                            const data = await response.json();
+                            span.textContent = data.content;
+                        } catch (error) {
+                            console.error('Error:', error);
+                            span.textContent = originalText;
+                        }
+                    }
+                    input.replaceWith(span);
+                };
+
+                input.addEventListener('blur', handleFinishEdit);
+                input.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        input.blur();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
